@@ -32,10 +32,6 @@ import inspect
 
 from .gpt2 import ThisGPT2LMHeadModel
 from .gpt2 import ThisGPT2Config
-from .xglm import ThisXGLMForCausalLM
-from .xglm import ThisXGLMConfig
-from .opt import ThisOPTForCausalLM
-from .opt import ThisOPTConfig
 
 # Copied from transformers.models.encoder_decoder.modeling_encoder_decoder.shift_tokens_right
 def shift_tokens_right(input_ids: torch.Tensor, pad_token_id: int, decoder_start_token_id: int):
@@ -358,20 +354,9 @@ class SmallCap(PreTrainedModel):
                 )
 
             if "config" not in kwargs_decoder:
-                if "xglm" in decoder_pretrained_model_name_or_path:
-                    decoder_config, kwargs_decoder = ThisXGLMConfig.from_pretrained(
-                        decoder_pretrained_model_name_or_path, **kwargs_decoder, return_unused_kwargs=True
-                    )
-
-                elif "opt" in decoder_pretrained_model_name_or_path:
-                    decoder_config, kwargs_decoder = ThisOPTConfig.from_pretrained(
-                        decoder_pretrained_model_name_or_path, **kwargs_decoder, return_unused_kwargs=True
-                    )
-
-                else:
-                    decoder_config, kwargs_decoder = ThisGPT2Config.from_pretrained(
-                        decoder_pretrained_model_name_or_path, **kwargs_decoder, return_unused_kwargs=True
-                    )
+                decoder_config, kwargs_decoder = ThisGPT2Config.from_pretrained(
+                    decoder_pretrained_model_name_or_path, **kwargs_decoder, return_unused_kwargs=True
+                )
 
                 if decoder_config.is_decoder is False or decoder_config.add_cross_attention is False:
                     logger.info(
@@ -394,14 +379,7 @@ class SmallCap(PreTrainedModel):
                     "`decoder_config` to `.from_encoder_decoder_pretrained(...)`"
                 )
             
-            #decoder = AutoModelForCausalLM.from_pretrained(decoder_pretrained_model_name_or_path, **kwargs_decoder)
-            if "xglm" in decoder_pretrained_model_name_or_path:
-                decoder = ThisXGLMForCausalLM.from_pretrained(decoder_pretrained_model_name_or_path, **kwargs_decoder)
-
-            elif "opt" in decoder_pretrained_model_name_or_path:
-                decoder = ThisOPTForCausalLM.from_pretrained(decoder_pretrained_model_name_or_path, **kwargs_decoder)
-            else:
-                decoder = ThisGPT2LMHeadModel.from_pretrained(decoder_pretrained_model_name_or_path, **kwargs_decoder)
+            decoder = ThisGPT2LMHeadModel.from_pretrained(decoder_pretrained_model_name_or_path, **kwargs_decoder)
 
         # instantiate config with corresponding kwargs
         config = SmallCapConfig.from_encoder_decoder_configs(encoder.config, decoder.config, **kwargs)
