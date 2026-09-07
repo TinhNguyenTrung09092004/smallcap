@@ -5,7 +5,7 @@ import argparse
 os.environ["WANDB_DISABLED"] = "true"
 
 from transformers.models.auto.configuration_auto import AutoConfig
-from transformers import AutoTokenizer, CLIPFeatureExtractor, AutoModel, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoImageProcessor, AutoModel, AutoModelForCausalLM
 from transformers import Seq2SeqTrainer, default_data_collator, Seq2SeqTrainingArguments
 
 from src.vision_encoder_decoder import SmallCap, SmallCapConfig
@@ -33,7 +33,7 @@ def get_model_and_auxiliaries(args):
     # create and configure model
     cross_attention_reduce_factor = PARAMS2REDUCE_FACTOR[args.attention_size]
 
-    feature_extractor = CLIPFeatureExtractor.from_pretrained(args.encoder_name)
+    feature_extractor = AutoImageProcessor.from_pretrained(args.encoder_name)
     tokenizer = AutoTokenizer.from_pretrained(args.decoder_name)
     tokenizer.pad_token = PAD_TOKEN
     tokenizer.eos_token = EOS_TOKEN
@@ -100,9 +100,8 @@ def main(args):
         fp16=True,
         save_strategy="epoch",
         save_total_limit=args.n_epochs, 
-        logging_strategy="epoch", 
-        output_dir=output_dir, 
-        overwrite_output_dir=True, 
+        logging_strategy="epoch",
+        output_dir=output_dir,
     )
 
     trainer = Seq2SeqTrainer(
@@ -110,7 +109,7 @@ def main(args):
         args=training_args,
         data_collator=default_data_collator, 
         train_dataset=train_dataset,
-        tokenizer=feature_extractor,
+        processing_class=feature_extractor,
     )
 
     trainer.train()

@@ -21,6 +21,7 @@ import torch
 from torch import nn
 from torch.nn import CrossEntropyLoss
 from transformers.configuration_utils import PretrainedConfig
+from transformers.generation import GenerationMixin
 from transformers.modeling_outputs import BaseModelOutput, Seq2SeqLMOutput
 from transformers.modeling_utils import PreTrainedModel
 #from transformers.utils import add_start_docstrings, add_start_docstrings_to_model_forward, logging, replace_return_docstrings
@@ -156,7 +157,7 @@ class SmallCapConfig(VisionEncoderDecoderConfig):
         super().__init__(**kwargs)
         
 
-class SmallCap(PreTrainedModel):
+class SmallCap(PreTrainedModel, GenerationMixin):
     r"""
     [`VisionEncoderDecoderModel`] is a generic model class that will be instantiated as a transformer architecture with
     one of the base vision model classes of the library as encoder and another one as decoder when created with the
@@ -164,8 +165,12 @@ class SmallCap(PreTrainedModel):
     :meth*~transformers.AutoModelForCausalLM.from_pretrained* class method for the decoder.
     """
     config_class = SmallCapConfig
+    config: SmallCapConfig
     base_model_prefix = "smallcap"
     main_input_name = "pixel_values"
+    supports_gradient_checkpointing = True
+    _supports_sdpa = True
+    _supports_flash_attn = True
 
     def __init__(
         self,
@@ -220,17 +225,6 @@ class SmallCap(PreTrainedModel):
 
     def set_output_embeddings(self, new_embeddings):
         return self.decoder.set_output_embeddings(new_embeddings)
-
-    @classmethod
-    def from_pretrained(cls, *args, **kwargs):
-        # At the moment fast initialization is not supported for composite models
-        if kwargs.get("_fast_init", False):
-            logger.warning(
-                "Fast initialization is currently not supported for VisionEncoderDecoderModel. "
-                "Falling back to slow initialization..."
-            )
-        kwargs["_fast_init"] = False
-        return super().from_pretrained(*args, **kwargs)
 
     @classmethod
     def from_encoder_decoder_pretrained(
@@ -401,6 +395,7 @@ class SmallCap(PreTrainedModel):
         output_attentions=None,
         output_hidden_states=None,
         return_dict=None,
+        cache_position=None,
         **kwargs,
     ):
         r"""
@@ -437,7 +432,7 @@ class SmallCap(PreTrainedModel):
         >>> generated_text = processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
         ```"""
  
-        return_dict = return_dict if return_dict is not None else self.config.use_return_dict
+        return_dict = return_dict if return_dict is not None else True
 
         kwargs_encoder = {argument: value for argument, value in kwargs.items() if not argument.startswith("decoder_")}
 
@@ -481,6 +476,7 @@ class SmallCap(PreTrainedModel):
             use_cache=use_cache,
             past_key_values=past_key_values,
             return_dict=return_dict,
+            cache_position=cache_position,
             **kwargs_decoder,
         )
 
@@ -512,27 +508,8 @@ class SmallCap(PreTrainedModel):
     def prepare_decoder_input_ids_from_labels(self, labels: torch.Tensor):
         return shift_tokens_right(labels, self.config.pad_token_id, self.config.decoder_start_token_id)
 
-    def prepare_inputs_for_generation(
-        self, input_ids, past=None, attention_mask=None, use_cache=None, encoder_outputs=None, **kwargs
-    ):
-        decoder_inputs = self.decoder.prepare_inputs_for_generation(input_ids, past=past)
-        decoder_attention_mask = decoder_inputs["attention_mask"] if "attention_mask" in decoder_inputs else None
-        input_dict = {
-            "attention_mask": attention_mask,
-            "decoder_attention_mask": decoder_attention_mask,
-            "decoder_input_ids": decoder_inputs["input_ids"],
-            "encoder_outputs": encoder_outputs,
-            "past_key_values": decoder_inputs["past_key_values"],
-            "use_cache": use_cache,
-        }
-        return input_dict
-
     def resize_token_embeddings(self, *args, **kwargs):
         raise NotImplementedError(
             "Resizing the embedding layers via the VisionEncoderDecoderModel directly is not supported.Please use the"
             " respective methods of the wrapped decoder object (model.decoder.resize_token_embeddings(...))"
         )
-
-    def _reorder_cache(self, past, beam_idx):
-        # apply decoder cache reordering here
-        return self.decoder._reorder_cache(past, beam_idx)

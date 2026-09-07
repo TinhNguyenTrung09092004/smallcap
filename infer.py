@@ -7,7 +7,7 @@ from PIL import Image
 import h5py
 from PIL import ImageFile
 import torch
-from transformers import AutoTokenizer, CLIPFeatureExtractor, AutoModel
+from transformers import AutoTokenizer, AutoImageProcessor, AutoModel
 from transformers.models.auto.configuration_auto import AutoConfig
 from transformers.modeling_outputs import BaseModelOutput
 
@@ -119,7 +119,7 @@ def main(args):
     if args.features_path is not None:
         feature_extractor = None
     else:
-        feature_extractor = CLIPFeatureExtractor.from_pretrained(args.encoder_name)
+        feature_extractor = AutoImageProcessor.from_pretrained(args.encoder_name)
 
     if args.disable_rag:
         args.k=0
