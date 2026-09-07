@@ -33,14 +33,13 @@ def filter_captions(data):
 
     decoder_name = 'gpt2'
     tokenizer = AutoTokenizer.from_pretrained(decoder_name)
-    tokenizer.add_special_tokens({'pad_token': '[PAD]'})
     bs = 512
 
     image_ids = [d['image_id'] for d in data]
     caps = [d['caption'] for d in data]
     encodings = []
-    for idx in range(0, len(data), bs):
-        encodings += tokenizer.batch_encode_plus(caps[idx:idx+bs], return_tensors='np', padding=True)['input_ids'].tolist()
+    for idx in tqdm(range(0, len(data), bs)):
+        encodings += tokenizer(caps[idx:idx+bs])['input_ids']
 
     filtered_image_ids, filtered_captions = [], []
 
