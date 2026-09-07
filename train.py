@@ -8,7 +8,6 @@ from transformers.models.auto.configuration_auto import AutoConfig
 from transformers import AutoTokenizer, CLIPFeatureExtractor, AutoModel, AutoModelForCausalLM
 from transformers import Seq2SeqTrainer, default_data_collator, Seq2SeqTrainingArguments
 
-from transformers import VisionEncoderDecoderModel, CLIPModel, CLIPVisionModel,EncoderDecoderModel
 from src.vision_encoder_decoder import SmallCap, SmallCapConfig
 from src.gpt2 import ThisGPT2Config, ThisGPT2LMHeadModel
 from src.xglm import ThisXGLMConfig, ThisXGLMForCausalLM
@@ -64,8 +63,6 @@ def get_model_and_auxiliaries(args):
     model.config.max_length = CAPTION_LENGTH   
     model.config.rag = not args.disable_rag
   
-    #print("model",model)
-    #print(stop)
     # freeze parameters
     for param in model.encoder.parameters():
         param.requires_grad = False
@@ -94,24 +91,14 @@ def get_data(tokenizer, max_length, args):
     data = load_data_for_training(args.annotations_path, args.captions_path)
     train_df = pd.DataFrame(data['train'])
 
-    if args.ablation_visual:
-        train_dataset =  AblationFeaturesDataset(
-                            df=train_df,
-                            features_path=os.path.join(args.features_dir,'train.hdf5'),
-                            tokenizer=tokenizer,
-                            rag=not args.disable_rag,
-                            template_path=args.template_path,
-                            k=args.k,
-                            max_caption_length=max_length)
-    else:
-        train_dataset = TrainDataset(
-                            df=train_df,
-                            features_path=os.path.join(args.features_dir,'train.hdf5'),
-                            tokenizer=tokenizer,
-                            rag=not args.disable_rag,
-                            template_path=args.template_path,
-                            k=args.k,
-                            max_caption_length=max_length)
+    train_dataset = TrainDataset(
+                        df=train_df,
+                        features_path=os.path.join(args.features_dir,'train.hdf5'),
+                        tokenizer=tokenizer,
+                        rag=not args.disable_rag,
+                        template_path=args.template_path,
+                        k=args.k,
+                        max_caption_length=max_length)
 
     return train_dataset
 
@@ -121,10 +108,7 @@ def main(args):
     train_dataset = get_data(tokenizer, model.config.max_length, args)
 
     model_type = 'norag' if args.disable_rag else 'rag'
-    if args.ablation_visual:
-        output_dir = '{}_{}M_{}_ablation'.format(model_type, args.attention_size, args.decoder_name)
-    else:
-        output_dir = '{}_{}M_{}'.format(model_type, args.attention_size, args.decoder_name)
+    output_dir = '{}_{}M_{}'.format(model_type, args.attention_size, args.decoder_name)
 
     output_dir = os.path.join(args.experiments_dir, output_dir)
     
@@ -172,8 +156,6 @@ if __name__ == '__main__':
     parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate")
     parser.add_argument("--batch_size", type=int, default=64, help="Batch size")
     parser.add_argument("--gradient_steps", type=int, default=1, help="Number of gradient accumulation steps")
-
-    parser.add_argument("--ablation_visual", action="store_true", default=False, help="Whether to blank visual features")
 
     args = parser.parse_args()
 

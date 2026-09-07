@@ -1,15 +1,11 @@
-datasets
 faiss-gpu
 h5py
 huggingface-hub
+numpy
 pandas
 Pillow
-pyarrow
-pyparsing
-PyYAML
 tokenizers
 torch
-torchaudio
 torchvision
 tqdm
 transformers

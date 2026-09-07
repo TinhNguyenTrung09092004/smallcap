@@ -1,6 +1,6 @@
 # SmallCap
 
-> We now have a demo, check it out: https://huggingface.co/spaces/RitaParadaRamos/SmallCapDemo :v:
+Training and evaluation code for SmallCap on COCO.
 
 ## Dependencies
 
@@ -12,67 +12,51 @@ conda activate smallcap
 pip install -r requirements.txt
 ```
 
+CLIP models based on ResNet are not available through HuggingFace, so the original CLIP implementation is also required for feature extraction and retrieval:
+
+```
+pip install git+https://github.com/openai/CLIP.git
+```
+
 #### Evaluation package
 
 Download Stanford models for computing SPICE (a slightly modified version of this [repo](https://github.com/daqingliu/coco-caption.git)):
 
 ```./coco-caption/get_stanford_models.sh```
 
-## Interacting with SmallCap
-
-Our pretrained model is available on HuggingFace at `Yova/SmallCap7M`. 
-
-To use it, you also need the retrieval datastore:
-
-```
-mkdir datastore
-```
-
-Download the COCO [index](https://drive.google.com/file/d/1ZP5I-xbjaNU7cU48C_ctHd95SaA0jBHe/view?usp=sharing) and associated [captions](https://drive.google.com/file/d/1BT0Qc6g40fvtnJ_yY0aipfCuCMgu5qaR/view?usp=sharing) and place them in `datastore/`.
-
-See `SmallCap_demo.inynb` for a demo of our pretrained model.
-
-## Training SmallCap
-
-<details>
-<summary>Click to expand</summary>
-
-### Data
+## Data
 
 Download the COCO Karpathy splits file `dataset_coco.json` from [here](https://www.kaggle.com/datasets/shtvkumar/karpathy-splits) and place it in `data/`.
 
 Download all COCO images (train, val and test, 2017 version) from [here](https://cocodataset.org/#download) and place them in `data/images`. The expected naming format is twelve digits followed by a `.jpg` extension, e.g. `data/images/000000000001.jpg` for image with COCO id `1`.
 
-### Preprocessing
+## Preprocessing
 
-At the moment CLIP models based on ResNet are not available through HuggingFace so it is necessary to also install the original CLIP implementation from [here](https://github.com/openai/CLIP):
-
-```
-pip install git+https://github.com/openai/CLIP.git
-```
-
-Extract train and val features: 
+Extract train and val features:
 
 ```
 mkdir features
 python src/extract_features.py
 ```
 
-Retrieve captions
+Build the retrieval datastore and retrieve captions:
 
-```python src/retrieve_captions.py```
+```
+mkdir datastore
+python src/retrieve_caps.py
+```
 
-### Model training
+## Model training
 
 ```python train.py```
 
 Models are saved under name <rag/norag>_<num params>M, e.g. `rag_7M` for a model trained with retrieval augmentation and 7M trainable parameters.
 
-### Inference
+## Inference
 
 ```python infer.py --model_path <MODEL_PATH>```
 
-If you also specify `--checkpoint_path` inference runs with only that checkpoint. Else, all checkpoints in `--model_path` are used. 
+If you also specify `--checkpoint_path` inference runs with only that checkpoint. Else, all checkpoints in `--model_path` are used.
 
 If you specify `--infer_test` inference uses test data, else val data is used.
 
@@ -82,14 +66,17 @@ E.g. to run inference on the test split with model `rag_7M`, checkpoint `17712`,
 
 The model predictions are stored as ```<val/test>_preds.json``` in each respective checkpoint subdirectory.
 
-Note: You can safely ignore the warning `Some weights of ThisGPT2LMHeadModel were not initialized from the model checkpoint at gpt2 and are newly initialized...` It occurs because a new model is first built and then the pre-trained parameters are loaded into it. 
+Note: You can safely ignore the warning `Some weights of ThisGPT2LMHeadModel were not initialized from the model checkpoint at gpt2 and are newly initialized...` It occurs because a new model is first built and then the pre-trained parameters are loaded into it.
 
-### Evaluate predictions
+## Evaluate predictions
 
 ```python coco-caption/run_eval.py <GOLD_ANN_PATH> <PREDICTIONS_PATH>```
-</details>
 
+E.g.
 
+```python coco-caption/run_eval.py coco-caption/annotations/captions_testKarpathy.json experiments/rag_7M/checkpoint-17712/test_preds.json```
+
+Scores (BLEU, METEOR, ROUGE-L, CIDEr, SPICE) are written next to the predictions file as `<val/test>_res.txt`.
 
 ### Paper
 
@@ -103,16 +90,3 @@ If you find our code/data/models or ideas useful in your research, please consid
   year={2023}
 }
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
