@@ -55,7 +55,8 @@ class TrainDataset(Dataset):
     def __init__(self, df, features_path, tokenizer, rag=False, template_path=None, k=None, max_caption_length=25):
         self.df = df
         self.tokenizer = tokenizer
-        self.features = h5py.File(features_path, 'r')
+        self.features_path = features_path
+        self.features = None
         self.max_target_length = max_caption_length
 
         if rag:
@@ -73,6 +74,8 @@ class TrainDataset(Dataset):
         return len(self.df)
 
     def __getitem__(self, idx):
+        if self.features is None:
+            self.features = h5py.File(self.features_path, 'r')
         text = self.df['text'][idx]
         if self.rag: 
             caps = self.df['caps'][idx]

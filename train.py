@@ -102,6 +102,8 @@ def main(args):
         save_total_limit=args.n_epochs, 
         logging_strategy="epoch",
         output_dir=output_dir,
+        dataloader_num_workers=args.dataloader_workers,
+        dataloader_pin_memory=True,
     )
 
     trainer = Seq2SeqTrainer(
@@ -135,6 +137,7 @@ if __name__ == '__main__':
     parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate")
     parser.add_argument("--batch_size", type=int, default=64, help="Batch size")
     parser.add_argument("--gradient_steps", type=int, default=1, help="Number of gradient accumulation steps")
+    parser.add_argument("--dataloader_workers", type=int, default=4, help="Dataloader workers used to read cached features")
 
     args = parser.parse_args()
 
