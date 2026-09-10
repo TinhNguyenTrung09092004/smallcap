@@ -186,7 +186,7 @@ class SmallCap(PreTrainedModel, GenerationMixin):
             if not isinstance(config, self.config_class):
                 raise ValueError(f"Config: {config} has to be of type {self.config_class}")
 
-        if config.decoder.cross_attention_hidden_size is not None:
+        if getattr(config.decoder, "cross_attention_hidden_size", None) is not None:
             if config.decoder.cross_attention_hidden_size != config.encoder.hidden_size:
                 raise ValueError(
                     "If `cross_attention_hidden_size` is specified in the decoder's configuration, it has to be equal#"
@@ -327,7 +327,7 @@ class SmallCap(PreTrainedModel, GenerationMixin):
                     encoder_pretrained_model_name_or_path, **kwargs_encoder, return_unused_kwargs=True
                 )
 
-                if encoder_config.is_decoder is True or encoder_config.add_cross_attention is True:
+                if getattr(encoder_config, "is_decoder", False) is True or getattr(encoder_config, "add_cross_attention", False) is True:
                     logger.info(
                         f"Initializing {encoder_pretrained_model_name_or_path} as a encoder model "
                         "from a decoder model. Cross-attention and casual mask are disabled."
@@ -352,7 +352,7 @@ class SmallCap(PreTrainedModel, GenerationMixin):
                     decoder_pretrained_model_name_or_path, **kwargs_decoder, return_unused_kwargs=True
                 )
 
-                if decoder_config.is_decoder is False or decoder_config.add_cross_attention is False:
+                if getattr(decoder_config, "is_decoder", False) is False or getattr(decoder_config, "add_cross_attention", False) is False:
                     logger.info(
                         f"Initializing {decoder_pretrained_model_name_or_path} as a decoder model. Cross attention"
                         f" layers are added to {decoder_pretrained_model_name_or_path} and randomly initialized if"
@@ -364,7 +364,7 @@ class SmallCap(PreTrainedModel, GenerationMixin):
                 decoder_config.cross_attention_reduce_factor = cross_attention_reduce_factor
                 kwargs_decoder["config"] = decoder_config
             
-            if kwargs_decoder["config"].is_decoder is False or kwargs_decoder["config"].add_cross_attention is False:
+            if getattr(kwargs_decoder["config"], "is_decoder", False) is False or getattr(kwargs_decoder["config"], "add_cross_attention", False) is False:
                 logger.warning(
                     f"Decoder model {decoder_pretrained_model_name_or_path} is not initialized as a decoder. "
                     f"In order to initialize {decoder_pretrained_model_name_or_path} as a decoder, "
