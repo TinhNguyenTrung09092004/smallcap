@@ -4,7 +4,6 @@ from .bleu.bleu import Bleu
 from .meteor.meteor import Meteor
 from .rouge.rouge import Rouge
 from .cider.cider import Cider
-from .spice.spice import Spice
 
 class COCOEvalCap:
     def __init__(self, coco, cocoRes):
@@ -39,9 +38,8 @@ class COCOEvalCap:
         scorers = [
             (Bleu(4), ["Bleu_1", "Bleu_2", "Bleu_3", "Bleu_4"]),
             (Meteor(),"METEOR"),
-            #(Rouge(), "ROUGE_L"),
+            (Rouge(), "ROUGE_L"),
             (Cider(), "CIDEr"),
-            (Spice(), "SPICE")
             ]
 
         # =================================================
